@@ -1,6 +1,5 @@
 # Optica
-Optica - simulation of opic lens and Ray tracing
-Optica
+Optica - simulation of optic lens and Ray tracing
 
 This software performs simulation of the optical system 
 Through which you can: 
