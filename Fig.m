@@ -110,6 +110,7 @@ classdef Fig <handle
                    end
                end   
         end
+        
         function PlotFig(fig)
    %% Draw the figures according to their location on the X axis
             
@@ -182,6 +183,7 @@ classdef Fig <handle
                 
             end
         end
+        
         function LockFig(fig,state)
              %% set all arrow 'HandleVisibility','on'
             try
@@ -205,8 +207,9 @@ classdef Fig <handle
              catch  err
                     disp(err.message)
              end
-         end
-        function [xmin xmax ymin ymax]= WhosIsTheMost(fig)
+        end
+         
+        function [xmin,xmax,ymin,ymax]= WhosIsTheMost(fig)
             %% Calculates the location farthest character and high \ low to determine the size of the axes
           
             Xim=[];Yim=[];
