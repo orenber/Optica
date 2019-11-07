@@ -176,8 +176,7 @@ classdef SysOptic <handle
             
             sys.M=[1 0; 0 1];
         end
-        
-        
+             
         function  fc(sys)
             
             sys.focal=-1/sys.M(2,1);
@@ -318,7 +317,7 @@ classdef SysOptic <handle
                 end
             end
         end
-        function val=get.indx(sys)
+        function val= get.indx(sys)
             val=  sys.indxnum;
             
         end
@@ -335,7 +334,7 @@ classdef SysOptic <handle
             sys.update()
 
         end
-        function val=get.x(sys)
+        function val= get.x(sys)
             val=sys.Xlocation;
         end
         function set.Index_out(sys,val)

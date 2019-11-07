@@ -62,6 +62,19 @@ ShowSysdata(handles)
 
 guidata(hObject, handles);
 
+function handles = GUI_Adjustment(hObject, handles)
+        color_collection = {'Blue',...
+            'Red',...
+            'Yellow',...
+            'Green',...
+            'Cyan',...
+            'Magenta',...
+            'Black'};
+set(handles.popupmenuColorLens,'string',color_collection);
+
+guidata(hObject, handles);
+end
+
 function DownFcn(hObject,event,handles)
 
 set( handles.figure_optica,'WindowButtonMotionFcn',@(h,e)MotionFcn(h,e,guidata(h)))
@@ -173,14 +186,12 @@ else
     set(handles.editX,'string',num2str(system.lens(system.indx).x));
     set(handles.editFocal,'string',num2str(system.lens(system.indx).focal));
     
-    Color = get(handles.popupmenuColorLens,'string');
-    color = system.lens(system.indx).Color;
-    for n=1:length(Color)
-        if  regexp(Color{n},color)==1
-            set(handles.popupmenuColorLens,'value',n)
-            break
-        end
-    end
+    color_popup = get(handles.popupmenuColorLens,'string');
+    color_selected_lens = system.lens(system.indx).Color;
+    color_index = find(ismember(color_popup,color_selected_lens));
+    set(handles.popupmenuColorLens,'value',color_index)
+
+ 
     % update matrix lens table
     set(handles.tbmatrixlens,'data',system.lens(system.indx).M);
 end
@@ -601,11 +612,11 @@ function sliderRadiusRight_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 system = handles.system;
-num = str2double(get(handles.editRadiusRight,'string'));
-num = NumberUpDown(hObject,num);
-set(handles.editRadiusRight,'string',num2str(num))
+number_on_edit = str2double(get(handles.editRadiusRight,'string'));
+num_new = NumberUpDown(hObject,number_on_edit);
+set(handles.editRadiusRight,'string',num2str(num_new))
 
-system.lens(system.indx).Radius_right=num;
+system.lens(system.indx).Radius_right = num_new;
 system.update()
 RayAndFigure(handles)
 ShowLensDataTable( handles,system.indx);

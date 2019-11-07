@@ -43,7 +43,7 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
-
+handles = GUI_Adjustment(hObject, handles);
 
 % UIWAIT makes Optica wait for user response (see UIRESUME)
 % uiwait(handles.figure_optica);
@@ -62,10 +62,24 @@ ShowSysdata(handles)
 
 guidata(hObject, handles);
 
+function handles = GUI_Adjustment(hObject, handles)
+        color_collection = {'Blue',...
+            'Red',...
+            'Yellow',...
+            'Green',...
+            'Cyan',...
+            'Magenta',...
+            'Black'};
+set(handles.popupmenuColorLens,'string',color_collection);
+
+guidata(hObject, handles);
+
+
 function DownFcn(hObject,event,handles)
 
 set( handles.figure_optica,'WindowButtonMotionFcn',@(h,e)MotionFcn(h,e,guidata(h)))
 set( handles.figure_optica,'WindowButtonUpFcn',@(h,e)UpFcn(h,e,guidata(h)))
+ShowLensData(handles)
 
 function MotionFcn(hObject,event,handles)
 
@@ -173,14 +187,12 @@ else
     set(handles.editX,'string',num2str(system.lens(system.indx).x));
     set(handles.editFocal,'string',num2str(system.lens(system.indx).focal));
     
-    Color = get(handles.popupmenuColorLens,'string');
-    color = system.lens(system.indx).Color;
-    for n=1:length(Color)
-        if  regexp(Color{n},color)==1
-            set(handles.popupmenuColorLens,'value',n)
-            break
-        end
-    end
+    color_popup = get(handles.popupmenuColorLens,'string');
+    color_selected_lens = system.lens(system.indx).Color;
+    color_index = find(ismember(color_popup,color_selected_lens));
+    set(handles.popupmenuColorLens,'value',color_index)
+
+ 
     % update matrix lens table
     set(handles.tbmatrixlens,'data',system.lens(system.indx).M);
 end
