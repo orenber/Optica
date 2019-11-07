@@ -567,25 +567,19 @@ ShowLensDataTable( handles,system.indx);
 
 function num=NumberUpDown(hObject,num,factor)
 if nargin<3
-    factor = 0.1;
+    factor = 0.01;
 end
 
-global Fnum
-Pnum=Fnum;
-Fnum=get(hObject,'Value');
-
-if (Fnum==get(hObject,'Min'))
-    set(hObject,'Value',0.5)
+current_value = get(hObject,'Value');
+ 
+if (current_value<=0.5) 
     num=num-factor;
-elseif (Fnum==get(hObject,'Max'))
-    set(hObject,'Value',0.5)
+else
     num=num+factor;
-elseif Fnum>Pnum
-    num=num+factor;
-elseif Fnum<Pnum
-    num=num-factor;
-    
 end
+% update 
+set(hObject,'Value',0.5)  
+ 
 
 % --- Executes during object creation, after setting all properties.
 function sliderRadiusLeft_CreateFcn(hObject, eventdata, handles)
@@ -607,11 +601,11 @@ function sliderRadiusRight_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 system = handles.system;
-num = str2double(get(handles.editRadiusRight,'string'));
-num = NumberUpDown(hObject,num);
-set(handles.editRadiusRight,'string',num2str(num))
+number_on_edit = str2double(get(handles.editRadiusRight,'string'));
+num_new = NumberUpDown(hObject,number_on_edit);
+set(handles.editRadiusRight,'string',num2str(num_new))
 
-system.lens(system.indx).Radius_right=num;
+system.lens(system.indx).Radius_right = num_new;
 system.update()
 RayAndFigure(handles)
 ShowLensDataTable( handles,system.indx);
