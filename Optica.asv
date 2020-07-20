@@ -43,24 +43,98 @@ handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
-
+handles = GUI_Adjustment(hObject, handles);
 
 % UIWAIT makes Optica wait for user response (see UIRESUME)
 % uiwait(handles.figure_optica);
+handles.setup = setSetup();
 
-handles.lens_array = {};
-handles.system = SysOptic(handles.lens_array);
-handles.system.ButtonDownFcn = @(h,e)DownFcn(h,e,guidata(h));
-handles.ray = Ray(handles.system);
-handles.fig = Fig(handles.ray);
+handles.system =  SystemOptic();
+hold(handles.axes_system,'on')
+handles.rayPoint = scatter(nan,nan,...
+    'Parent',handles.axes_system,'MarkerFaceColor','green',...
+    'Marker','o','MarkerEdgeColor','yellow');
+hold(handles.axes_system,'off')
 
-handles.system.SysPlot()
-ResetOpticSys(handles,'off');
 
-ShowSysdata(handles)
+handles.system.createAxesBanch(handles.axes_system)
+handles.ray = Ray(handles.system,handles.setup.ray);
+handles.system.addRay(handles.ray);
+
+handles.fig = Fig();
+handles.fig.addRay(handles.ray);
+handles.system.addFigure(handles.fig);
+
+listen2DataChange(hObject, eventdata, handles) 
+
+tableSystemUpdate(hObject, eventdata, handles)
+table_ray_update_callback(hObject, eventdata, handles)
+
 %set( handles.figure_optica,'WindowButtonDownFcn',@(h,e)DownFcn(h,e,guidata(h)))
 
 guidata(hObject, handles);
+
+function setup = setSetup()
+
+   setup.lens = struct(...
+     'X','x'...
+    ,'Y','y'...
+    ,'Focal','focal'...
+    ,'Radius_Left','radius_left'...
+    ,'Radius_Right','radius_right'...
+    ,'Height','height'...
+    ,'Width','width'...
+    ,'Index_In','index_in'...
+    ,'Index_Out','index_out'...
+    ,'Color','color');
+
+setup.system = {
+     'Focal'...
+    ,'Length'...
+    ,'Front'...
+    ,'Back'...
+    ,'Magnification'...
+    ,'VHF'...
+    ,'VHB'...
+    ,'Lens Count'};
+
+setup.displyData = @(x)sprintf('%25.*g',3,x);
+setup.color_collection = {'Blue',...
+            'Red',...
+            'Yellow',...
+            'Green',...
+            'Cyan',...
+            'Magenta',...
+            'Black'};
+setup.ray = struct('y',2,'x',0,'teta',[10,-10,0],'color','red','draw',true);
+
+
+function listen2DataChange(hObject, eventdata, handles)
+handles.listener.systemUpdate = addlistener(handles.system,'Update',...
+     @(h,e)(cellfun(@(x)feval(x,h,e),...
+     {@(h,e)tableSystemUpdate(h,e,guidata(hObject)),...
+      @(h,e)showLensData(h,e,guidata(hObject))...
+     })...
+     ));
+handles.listener.rayUpdate = addlistener(handles.ray,...
+    'Update',@(h,e)table_ray_update_callback(h,e,guidata(hObject)));
+ 
+function tableSystemUpdate(hObject, eventdata, handles)
+% show the  optical system data
+
+set(handles.tbsysdata,'data',[handles.system.focal,...
+                              handles.system.L,...
+                              handles.system.Xf,...
+                              handles.system.Xb,...
+                              handles.system.m,...
+                              handles.system.vhf,...
+                              handles.system.vhb,...
+                              length(handles.system.lens)]')
+
+ set(handles.tbsysmatrix,'data', handles.system.matrix)
+ if ~isempty(handles.system.lens)
+ showLensDataTable(handles,handles.system.lens(handles.system.indx))
+ end
 
 function handles = GUI_Adjustment(hObject, handles)
         color_collection = {'Blue',...
@@ -73,75 +147,9 @@ function handles = GUI_Adjustment(hObject, handles)
 set(handles.popupmenuColorLens,'string',color_collection);
 
 guidata(hObject, handles);
-end
-
-function DownFcn(hObject,event,handles)
-
-set( handles.figure_optica,'WindowButtonMotionFcn',@(h,e)MotionFcn(h,e,guidata(h)))
-set( handles.figure_optica,'WindowButtonUpFcn',@(h,e)UpFcn(h,e,guidata(h)))
-
-function MotionFcn(hObject,event,handles)
-
-system = handles.system;
-if  (~isempty(system.indx))&&(ne(system.indx,0))
-          
-        xy=get(handles.axes_optica,'CurrentPoint');
-        x=xy(1);
-        
-        system.lens(system.indx).x=x;
-        system.SysMovie()
-        
-end
-
-function UpFcn(~,~,handles)
-% turn off movemont function 
-set( handles.figure_optica,'WindowButtonMotionFcn','')
-set( handles.figure_optica,'WindowButtonUpFcn','')
-
-system = handles.system;
-if (~isempty(system.lens))&&(~isempty(system.indx))...
-        &&(ne(system.indx,0))
-    
-    % update all field lens
-    system.update()
-    if (isempty(system.lens)==1)
-        ResetOpticSys(handles,'off')
-    else
-        
-        ShowLensData(handles)
-    end
-    RayAndFigure(handles)
-    
-end
-
-function RayAndFigure(handles)
-% plot the figure
-system = handles.system;
-% if the figure check box is check and ther is alens in the system
-if  get(handles.Fig,'value')==1&&handles.system.indx~=0
-    set(system.lens(system.indx).rect,'HandleVisibility','off')
-    Fig_Callback(handles,handles,handles);
-    set(system.lens(system.indx).rect,'HandleVisibility','on')
-end
-% plot the RAys
 
 
-Fig_Callback(handles,handles,handles);
-UpdateRay(handles);
 
-function ShowSysdata( handles)
-system = handles.system;
-
-if ~isempty(system.lens)
-    set(handles.editFocal,'string',system.lens(system.indx).focal)
-end
-% show the  optical system data
-data_table = [system.focal, system.L, system.Xf...
-    ,system.Xb, system.m, system.vhf, system.vhb, length(system.lens)]';
-set(handles.tbsysdata,'data',data_table)
-% show the Matrix of the system
-set(handles.tbsysmatrix,'data',system.M);
-% show the optical path data
 % --- Outputs from this function are returned to the command line.
 function varargout = Optica_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
@@ -152,53 +160,40 @@ function varargout = Optica_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
-function ShowLensDataTable(handles,indx)
-system = handles.system;
-% check if the matrix is empty
-if  isempty(system.lens)==1
-    Mat=[1 0;0 1];
-else
-    Mat=system.lens(indx).M;
-end
+function showLensDataTable(handles,lensObj)
+ 
 % update matrix lens table
-set(handles.tbmatrixlens,'data',Mat);
-ShowSysdata(handles);
+set(handles.tbmatrixlens,'data',lensObj.matrix);
 
-function ShowLensData(handles)
+
+function showLensData(hObject, eventdata, handles)
 system = handles.system;
-
-% update all field lens
-if (isempty(system.lens)==1)
-    ResetOpticSys(handles,'off')
-else
     
     set(handles.panelens,'Title',strcat('Lens :',num2str(system.indx)))
     
-    set(handles.editRadiusLeft,'string',num2str(system.lens(system.indx).Radius_Left));
-    set(handles.editRadiusRight,'string',num2str(system.lens(system.indx).Radius_right));
+    set(handles.editRadiusLeft,'string',num2str(system.lens(system.indx).radius_left));
+    set(handles.editRadiusRight,'string',num2str(system.lens(system.indx).radius_right));
     
-    set(handles.editWidth,'string',num2str(system.lens(system.indx).Width));
-    set(handles.editHeight,'string',num2str(system.lens(system.indx).Height));
+    set(handles.editWidth,'string',num2str(system.lens(system.indx).width));
+    set(handles.editHeight,'string',num2str(system.lens(system.indx).height));
     
-    set(handles.editIndexOut,'string',num2str(system.lens(system.indx).Index_out));
-    set(handles.editIndexIn,'string',num2str(system.lens(system.indx).Index_in));
+    set(handles.editIndexOut,'string',num2str(system.lens(system.indx).index_out));
+    set(handles.editIndexIn,'string',num2str(system.lens(system.indx).index_in));
     
     set(handles.editX,'string',num2str(system.lens(system.indx).x));
     set(handles.editFocal,'string',num2str(system.lens(system.indx).focal));
     
     color_popup = get(handles.popupmenuColorLens,'string');
-    color_selected_lens = system.lens(system.indx).Color;
+    color_selected_lens = system.lens(system.indx).color;
     color_index = find(ismember(color_popup,color_selected_lens));
     set(handles.popupmenuColorLens,'value',color_index)
 
  
     % update matrix lens table
-    set(handles.tbmatrixlens,'data',system.lens(system.indx).M);
-end
-% update System optic
-ShowSysdata( handles);
-
-function ResetOpticSys(handles,onoff)
+    set(handles.tbmatrixlens,'data',system.lens(system.indx).matrix);
+  
+   
+function enbleOpticLensUI(handles,onoff)
 
 allHandles = [handles.editRadiusLeft,...
     handles.sliderRadiusLeft,...
@@ -208,8 +203,6 @@ allHandles = [handles.editRadiusLeft,...
     handles.sliderWidth,...
     handles.editHeight,...
     handles.sliderHeight,...
-    handles.editIndexOut,...
-    handles.sliderIndexOut,...
     handles.editIndexIn,...
     handles.sliderIndexIn,...
     handles.editX,...
@@ -219,6 +212,10 @@ allHandles = [handles.editRadiusLeft,...
     handles.tbmatrixlens];
 % update matrix lens table
 set(allHandles,'Enable',onoff)
+
+
+function resetLensUI(
+
 
 % --- Executes on selection change in popupmenuColorLens.
 function popupmenuColorLens_Callback(hObject, eventdata, handles)
@@ -232,33 +229,8 @@ system = handles.system;
 contents = cellstr(get(hObject,'String'));
 color = contents{get(hObject,'Value')} ;
 
-system.lens(system.indx).Color=color;
-system.SysMovie()
-RayAndFigure(handles)
-
-% --- Executes during object creation, after setting all properties.
-function popupmenuColorLens_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupmenuColorLens (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes during object creation, after setting all properties.
-function sliderFocal_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to sliderFocal (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
+system.lens(system.indx).color = color;
+ 
 % --- Executes on slider movement.
 function sliderX_Callback(hObject, eventdata, handles)
 % hObject    handle to sliderX (see GCBO)
@@ -273,21 +245,6 @@ num = NumberUpDown(hObject,num);
 set(handles.editX,'string',num2str(num))
 
 system.lens(system.indx).x=num;
-system.SysMovie()
-system.update()
-RayAndFigure(handles)
-ShowSysdata(handles)
-
-% --- Executes during object creation, after setting all properties.
-function sliderX_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to sliderX (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
 
 function editFocal_Callback(hObject, eventdata, handles)
 % hObject    handle to editFocal (see GCBO)
@@ -300,22 +257,6 @@ system.lens(system.indx).Focal(val)
 set(handles.editRadiusRight,'string',num2str(system.lens(system.indx).Radius_right))
 set(handles.editRadiusLeft,'string',num2str(system.lens(system.indx).Radius_Left))
 set(handles.editWidth,'string',num2str(system.lens(system.indx).Width))
-system.update()
-system.SysMovie()
-RayAndFigure(handles)
-ShowLensDataTable(handles,system.indx)
-
-% --- Executes during object creation, after setting all properties.
-function editFocal_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editFocal (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 function editX_Callback(hObject, eventdata, handles)
 % hObject    handle to editX (see GCBO)
@@ -325,26 +266,9 @@ function editX_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editX as text
 %        str2double(get(hObject,'String')) returns contents of editX as a double
 system = handles.system;
-system.lens(system.indx).x=str2double(get(hObject,'string'));
+system.lens(system.indx).x = str2double(get(hObject,'string'));
 set(hObject,'string',num2str(system.lens(system.indx).x));
-system.update()
-
-system.SysMovie()
-RayAndFigure(handles)
-ShowSysdata(handles)
-
-% --- Executes during object creation, after setting all properties.
-function editX_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editX (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
+ 
 % --- Executes on slider movement.
 function sliderIndexIn_Callback(hObject, eventdata, handles)
 % hObject    handle to sliderIndexIn (see GCBO)
@@ -356,51 +280,20 @@ function sliderIndexIn_Callback(hObject, eventdata, handles)
 system = handles.system;
 num = str2double(get(handles.editIndexIn,'string'));
 num = NumberUpDown(hObject,num);
-system.lens(system.indx).Index_in=num;
+system.lens(system.indx).index_in = num;
 
-set(handles.editIndexIn,'string',num2str(system.lens(system.indx).Index_in))
-
-system.update
-RayAndFigure(handles)
-ShowLensDataTable( handles,system.indx);
-
-% --- Executes during object creation, after setting all properties.
-function sliderIndexIn_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to sliderIndexIn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
+set(handles.editIndexIn,'string',num2str(system.lens(system.indx).index_in))
+ 
 % --- Executes on slider movement.
 function sliderIndexOut_Callback(hObject, eventdata, handles)
 % hObject    handle to sliderIndexOut (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-system = handles.system;
+
 num = str2double(get(handles.editIndexOut,'string'));
 num = NumberUpDown(hObject,num);
-system.Index_out = num;
-set(handles.editIndexOut,'string',num2str(system.Index_out))
-
-
-RayAndFigure(handles)
-
-ShowLensDataTable( handles,system.indx);
-
-% --- Executes during object creation, after setting all properties.
-function sliderIndexOut_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to sliderIndexOut (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
+handles.system.index_out = num;
+set(handles.editIndexOut,'string',num2str(system.index_out))
 
 function editIndexIn_Callback(hObject, eventdata, handles)
 % hObject    handle to editIndexIn (see GCBO)
@@ -410,22 +303,8 @@ function editIndexIn_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editIndexIn as text
 %        str2double(get(hObject,'String')) returns contents of editIndexIn as a double
 system = handles.system;
-system.lens(system.indx).Index_in=str2double(get(hObject,'string'));
-set(hObject,'string',num2str(system.lens(system.indx).Index_in))
-RayAndFigure(handles)
-ShowLensDataTable(handles,system.indx)
-
-% --- Executes during object creation, after setting all properties.
-function editIndexIn_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editIndexIn (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+system.lens(system.indx).index_in=str2double(get(hObject,'string'));
+set(hObject,'string',num2str(system.lens(system.indx).index_in))
 
 function editIndexOut_Callback(hObject, eventdata, handles)
 % hObject    handle to editIndexOut (see GCBO)
@@ -435,21 +314,8 @@ function editIndexOut_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editIndexOut as text
 %        str2double(get(hObject,'String')) returns contents of editIndexOut as a double
 
-handles.system.Index_out = str2double(get(hObject,'string'));
-RayAndFigure(handles)
-ShowLensData(handles)
+handles.system.index_out = str2double(get(hObject,'string'));
 
-% --- Executes during object creation, after setting all properties.
-function editIndexOut_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editIndexOut (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 % --- Executes on slider movement.
 function sliderWidth_Callback(hObject, eventdata, handles)
@@ -462,24 +328,10 @@ function sliderWidth_Callback(hObject, eventdata, handles)
 system = handles.system;
 num = str2double(get(handles.editWidth,'string'));
 num = NumberUpDown(hObject,num,0.01);
-system.lens(system.indx).Width = num;
-num = system.lens(system.indx).Width;
+system.lens(system.indx).width = num;
+num = system.lens(system.indx).width;
 set(handles.editWidth,'string',num2str(num))
-
-system.SysMovie()
-system.update()
-RayAndFigure(handles)
-ShowLensDataTable(handles,system.indx)
-% --- Executes during object creation, after setting all properties.
-function sliderWidth_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to sliderWidth (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
+ 
 
 % --- Executes on slider movement.
 function sliderHeight_Callback(hObject, eventdata, handles)
@@ -494,17 +346,8 @@ num = str2double(get(handles.editHeight,'string'));
 num = NumberUpDown(hObject,num);
 
 set(handles.editHeight,'string',num2str(num))
+system.lens(system.indx).height = num;
 
-system.lens(system.indx).Height = num;
-system.SysMovie()
-RayAndFigure(handles)
-
-% --- Executes during object creation, after setting all properties.
-function sliderHeight_CreateFcn(hObject, eventdata, handles)
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
 
 function editWidth_Callback(hObject, eventdata, handles)
 % hObject    handle to editWidth (see GCBO)
@@ -514,24 +357,9 @@ function editWidth_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editWidth as text
 %        str2double(get(hObject,'String')) returns contents of editWidth as a double
 system = handles.system;
-system.lens(system.indx).Width=str2double(get(handles.editWidth,'string'));
-set(handles.editWidth,'string',num2str(system.lens(system.indx).Width))
-system.update()
-system.SysMovie()
-RayAndFigure(handles)
-ShowLensDataTable( handles,system.indx);
+system.lens(system.indx).width=str2double(get(handles.editWidth,'string'));
+set(handles.editWidth,'string',num2str(system.lens(system.indx).width))
 
-% --- Executes during object creation, after setting all properties.
-function editWidth_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editWidth (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 function editHeight_Callback(hObject, eventdata, handles)
 % hObject    handle to editHeight (see GCBO)
@@ -541,22 +369,9 @@ function editHeight_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editHeight as text
 %        str2double(get(hObject,'String')) returns contents of editHeight as a double
 system = handles.system; 
-system.lens(system.indx).Height=str2double(get(hObject,'string'));
-set(handles.editHeight,'string',num2str(system.lens(system.indx).Height))
-system.SysMovie()
-RayAndFigure(handles)
-
-% --- Executes during object creation, after setting all properties.
-function editHeight_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editHeight (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+system.lens(system.indx).height=str2double(get(hObject,'string'));
+set(handles.editHeight,'string',num2str(system.lens(system.indx).height))
+ 
 
 % --- Executes on slider movement.
 function sliderRadiusLeft_Callback(hObject, eventdata, handles)
@@ -570,13 +385,10 @@ system = handles.system;
 num = str2double(get(handles.editRadiusLeft,'string'));
 num = NumberUpDown(hObject,num);
 set(handles.editRadiusLeft,'string',num2str(num))
+system.lens(system.indx).radius_left = num;
 
-system.lens(system.indx).Radius_Left=num;
-system.update
-RayAndFigure(handles)
-ShowLensDataTable( handles,system.indx);
 
-function num=NumberUpDown(hObject,num,factor)
+function num = NumberUpDown(hObject,num,factor)
 if nargin<3
     factor = 0.01;
 end
@@ -591,18 +403,6 @@ end
 % update 
 set(hObject,'Value',0.5)  
  
-
-% --- Executes during object creation, after setting all properties.
-function sliderRadiusLeft_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to sliderRadiusLeft (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
 % --- Executes on slider movement.
 function sliderRadiusRight_Callback(hObject, eventdata, handles)
 % hObject    handle to sliderRadiusRight (see GCBO)
@@ -611,27 +411,13 @@ function sliderRadiusRight_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
-system = handles.system;
+
 number_on_edit = str2double(get(handles.editRadiusRight,'string'));
 num_new = NumberUpDown(hObject,number_on_edit);
 set(handles.editRadiusRight,'string',num2str(num_new))
+handles.system.lens(system.indx).radius_right = num_new;
 
-system.lens(system.indx).Radius_right = num_new;
-system.update()
-RayAndFigure(handles)
-ShowLensDataTable( handles,system.indx);
 guidata(hObject,handles)
-
-% --- Executes during object creation, after setting all properties.
-function sliderRadiusRight_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to sliderRadiusRight (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
 
 function editRadiusLeft_Callback(hObject, eventdata, handles)
 % hObject    handle to editRadiusLeft (see GCBO)
@@ -641,25 +427,10 @@ function editRadiusLeft_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editRadiusLeft as text
 %        str2double(get(hObject,'String')) returns contents of editRadiusLeft as a double
 system = handles.system;
-system.lens(system.indx).Radius_Left=str2double(get(handles.editRadiusLeft,'string'));
-set(handles.editRadiusLeft,'string',num2str(system.lens(system.indx).Radius_Left))
-system.update()
-system.SysMovie()
-RayAndFigure(handles)
-ShowLensDataTable(handles,system.indx);
+system.lens(system.indx).radius_left=str2double(get(handles.editRadiusLeft,'string'));
+set(handles.editRadiusLeft,'string',num2str(system.lens(system.indx).radius_left))
+ 
 guidata(hObject,handles)
-
-% --- Executes during object creation, after setting all properties.
-function editRadiusLeft_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editRadiusLeft (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 function editRadiusRight_Callback(hObject, eventdata, handles)
 % hObject    handle to editRadiusRight (see GCBO)
@@ -669,24 +440,9 @@ function editRadiusRight_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editRadiusRight as text
 %        str2double(get(hObject,'String')) returns contents of editRadiusRight as a double
 system = handles.system;
-system.lens(system.indx).Radius_right=str2double(get(handles.editRadiusRight,'string'));
-set(handles.editRadiusRight,'string',num2str(system.lens(system.indx).Radius_right))
-system.update
-system.SysMovie
-RayAndFigure(handles)
-ShowLensDataTable( handles,system.indx);
+system.lens(system.indx).radius_right = str2double(get(handles.editRadiusRight,'string'));
+set(handles.editRadiusRight,'string',num2str(system.lens(system.indx).radius_right))
 
-% --- Executes during object creation, after setting all properties.
-function editRadiusRight_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editRadiusRight (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 % --- Executes on button press in pushbuttonAddLens.
 function pushbuttonAddLens_Callback(hObject, eventdata, handles)
@@ -694,47 +450,25 @@ function pushbuttonAddLens_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-lens = handles.lens_array;
-system = handles.system;
-
-if isempty(system.lens)
-    ResetOpticSys(handles,'on');
-end
 % create new Lens
-indx = length(lens)+1;
-lens{indx}=Lens;
+handles.system.addLens(Lens())
 
-system.AddLens(lens{indx})
-system.SysPlot()
+enbleOpticLensUI(handles,'on')
 
-ShowLensData( handles)
-guidata(hObject,handles)
+
 
 % --- Executes on button press in pushbuttonRemoveLens.
 function pushbuttonRemoveLens_Callback(hObject, eventdata, handles)
 % hObject    handle to pushbuttonRemoveLens (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-lens = handles.lens_array;
-system = handles.system;
 
-if ~isempty(system.lens)
-    
-    system.RemoveLens(system.lens(system.indx));
-    handles.lens_array = lens(1:length(lens)-1);
-    system.SysPlot()
-    ShowLensDataTable( handles,system.indx);
-    ShowLensData( handles)
-    
+
+if ~isempty(handles.system.lens)
+handles.system.removeLens(handles.system.lens(handles.system.indx))
 else
-    ResetOpticSys(handles,'off')
+enbleOpticLensUI(handles,'off')
 end
-
-if isempty(system.lens)
-    ResetOpticSys(handles,'off')
-end
-
-guidata(hObject,handles)
 
 % --- Executes on button press in checkboxRayOn.
 function checkboxRayOn_Callback(hObject,~,handles)
@@ -743,61 +477,20 @@ function checkboxRayOn_Callback(hObject,~,handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of checkboxRayOn
-system = handles.system;
-RayOn=get(handles.checkboxRayOn,'Value');
-% if the ray check box is check
-if RayOn==1
-    % if the figure checkbox is check
-    if get(handles.Fig,'Value')==1
-        Fig_Callback( handles,handles,handles);
-        UpdateRay(handles);
-        
-    else
-        Fig_Callback( handles,handles,handles);
-        UpdateRay(handles);
-        
-    end
-    
-elseif RayOn==0
-    if  (~isempty(system.lens))||(system.indx~=0)
-        set(system.lens(system.indx).rect,'HandleVisibility','off')
-        
-        newplot
-        if get(handles.Fig,'value')==1
-            Fig_Callback( handles ,handles,handles);
-        end
-        set(system.lens(system.indx).rect,'HandleVisibility','on')
-    else
-        newplot
-    end
-    
-end
+ handles.system.ray.draw = logical(get(handles.checkboxRayOn,'Value'));
+ 
 
-function UpdateRay(handles)
+function table_ray_update_callback(hObject, eventdata, handles)
 
-ray = handles.ray;
-system = handles.system;
-set(handles.tbDegRay,'data',[ray.teta]')
-if  get(handles.checkboxRayOn,'value')==1
-    % update Ray Data
-    ray.RayIn()
-    % update Ray Control
-    set(handles.editYRay,'string',num2str(ray.y))
-    % update Ray table
-    mat=cell2mat(ray.xyr);
-    xyr=reshape(mat,3,length(mat));
-    set(handles.tbRayXYTeta,'data',xyr);
-    
-    if  (~isempty(system.lens))||(system.indx~=0)
-        set(system.lens(system.indx).rect,'HandleVisibility','off')
-        % Plot the Ray
-        set(system.lens(system.indx).rect,'HandleVisibility','on')
-    else
-        % Plot the Ray
-        ray.RayPlot()
-    end
-    
-end
+set(handles.tbDegRay,'data',handles.ray.teta(:))
+% update Ray Control
+set(handles.editYRay,'string',num2str(handles.ray.y))
+% update Ray table
+mat = cell2mat(handles.ray.xyr);
+xyr = reshape(mat,size(mat,1),size(mat,2));
+set(handles.tbRayXYTeta,'data',xyr);
+
+
 
 function editYRay_Callback(hObject, eventdata, handles)
 % hObject    handle to editYRay (see GCBO)
@@ -808,47 +501,20 @@ function editYRay_Callback(hObject, eventdata, handles)
 %        str2double(get(hObject,'String')) returns contents of editYRay as a double
  
 handles.ray.y = str2double(get(hObject,'String'));
-RayAndFigure(handles)
 
-% --- Executes during object creation, after setting all properties.
-function editYRay_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to editYRay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 % --- Executes on slider movement.
 function sliderRay_Callback(hObject, eventdata, handles)
 % hObject    handle to sliderRay (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-ray = handles.Ray ;
-system = handles.system;
+
 num = str2double(get(handles.editYRay,'string'));
 num = NumberUpDown(hObject,num);
 set(handles.editYRay,'string',num2str(num))
+handles.ray.y = num;
 
-ray.y = num;
-system.update()
-RayAndFigure(handles)
-ShowLensDataTable(handles,system.indx);
-
-% --- Executes during object creation, after setting all properties.
-function sliderRay_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to sliderRay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: slider controls usually have a light gray background.
-if isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor',[.9 .9 .9]);
-end
-
+ 
 % --- Executes on selection change in popupmenuColorRay.
 function popupmenuColorRay_Callback(hObject, eventdata, handles)
 % hObject    handle to popupmenuColorRay (see GCBO)
@@ -862,18 +528,6 @@ contents = cellstr(get(hObject,'String'));
 color = contents{get(hObject,'Value')};
 
 handles.ray.color = color;
-RayAndFigure(handles)
-% --- Executes during object creation, after setting all properties.
-function popupmenuColorRay_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to popupmenuColorRay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 
 % --- Executes when entered data in editable cell(s) in tbDegRay.
 function tbDegRay_CellEditCallback(hObject, eventdata, handles)
@@ -885,50 +539,8 @@ function tbDegRay_CellEditCallback(hObject, eventdata, handles)
 %	NewData: EditData or its converted form set on the Data property. Empty if Data was not changed
 %	Error: error string when failed to convert EditData to appropriate value for Data
 % handles    structure with handles and user data (see GUIDATA)
+handles.ray.teta(eventdata.Indices(1)) = eventdata.NewData;
 
-handles.ray.teta= (get(hObject,'data'))';
-Fig_Callback(handles ,handles,handles)
-UpdateRay(handles)
-
-guidata(hObject,handles)
-
-% --- Executes on button press in Fig.
-function Fig_Callback(hObject,~,handles)
-% hObject    handle to Fig (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of Fig
-
-system = handles.system;
-set(handles.axes_optica,'NextPlot','replacechildren')
-
-if  get(handles.Fig,'Value')==1
-    handles.ray.RayIn()
-    if ~isempty(system.lens)
-        set(system.lens(system.indx).rect,'HandleVisibility','off')
-        newplot
-        handles.fig.PlotFig()
-        if get(handles.checkboxRayOn,'Value')==1
-            handles.ray.RayPlot()
-        end
-        handles.fig.LockFig('on')
-        set(system.lens(system.indx).rect,'HandleVisibility','on')
-    end
-    
-elseif get(handles.Fig,'Value')==0
-    if ~isempty(system.lens)
-        set(system.lens(system.indx).rect,'HandleVisibility','off')
-        newplot
-        if get(handles.checkboxRayOn,'Value')==1
-            handles.ray.RayPlot()
-        end
-        set(system.lens(system.indx).rect,'HandleVisibility','on')
-        
-    elseif isempty(system.lens)&&get(handles.checkboxRayOn,'value')==0
-        newplot
-    end
-end
 
 % --- Executes on button press in ResetSystem.
 function ResetSystem_Callback(hObject, eventdata, handles)
@@ -936,10 +548,7 @@ function ResetSystem_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
  
-handles.system.ResetSystem();
-handles.system.SysPlot();
-ShowLensData(handles)
-
+handles.system.resetSystem();
 guidata(hObject,handles)
 
 % --------------------------------------------------------------------
@@ -962,16 +571,8 @@ end
 % --- Executes on button press in ShowAllTheSystem.
 function ShowAllTheSystem_Callback(hObject, eventdata, handles)
 
-[Fxmin, Fxmax, Fymin, Fymax]= handles.fig.WhosIsTheMost();
-[Lxmin, Lxmax, Lymin, Lymax]= handles.system.WhoIsTheMost();
+handles.system.showAllView();
 
-xmin=min(horzcat(Fxmin,Lxmin,Fxmax,Lxmax));
-xmax=max(horzcat(Fxmin,Lxmin,Fxmax,Lxmax));
-ymin=min(horzcat(Fymin,Lymin,Fymax,Lymax));
-ymax=max(horzcat(Fymin,Lymin,Fymax,Lymax));
-
-axis([xmin*(1+1/6) xmax*(1+1/5) ymin*(1+1/5) ymax*(1+1/5)]);
-guidata(hObject,handles)
 
 % --- Executes when selected cell(s) is changed in tbRayXYTeta.
 function tbRayXYTeta_CellSelectionCallback(hObject, eventdata, handles)
@@ -979,27 +580,20 @@ function tbRayXYTeta_CellSelectionCallback(hObject, eventdata, handles)
 % eventdata  structure with the following fields (see UITABLE)
 %	Indices: row and column indices of the cell(s) currently selecteds
 % handles    structure with handles and user data (see GUIDATA)
-% index=find(mod(eventdata.Indices(:,2),3)==0);
-% Nm= eventdata.Indices(index,:);
-% XY=setdiff(eventdata.Indices(:,:),Nm,'rows');
-% unique(m(min(XY(:,1)):max(XY(:,1)),sort(unique(XY(:,2)))),'rows')
-system = handles.system;
+ 
 
-if get(handles.checkboxRayOn,'Value')==1
-    m=get(hObject,'data');
-    Xind=find(mod(eventdata.Indices(:,2)-1,3)==0);
-    Yind=find(mod(eventdata.Indices(:,2)-2,3)==0);
-    Y= eventdata.Indices(Yind,:);
-    X=eventdata.Indices(Xind,:);
+    path = cell2mat(handles.ray.xyr);
+    Xind = find(mod(eventdata.Indices(:,2)-1,3)==0);
+    Yind = find(mod(eventdata.Indices(:,2)-2,3)==0);
+    Y = eventdata.Indices(Yind,:);
+    X = eventdata.Indices(Xind,:);
     
     if size(X)==size(Y)
         
-        x= diag(m(X(:,1),X(:,2)));
-        y= diag(m(Y(:,1),Y(:,2)));
-        set(system.lens(system.indx).rect,'HandleVisibility','off')
-        newplot
-        p=plot(x,y,'ro','HandleVisibility','off');
-        Fig_Callback(handles,handles,handles)
-        set(p,'HandleVisibility','on')
+        x= diag(path(X(:,1),X(:,2)));
+        y= diag(path(Y(:,1),Y(:,2)));
+       
+        set(handles.rayPoint,'XData',x,'YData',y);
+
     end
-end
+
