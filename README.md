@@ -14,7 +14,11 @@ This software simulates the optical system through which you can:
 
 for more matlab project go to:
 [matlab project](https://www.mathworks.com/matlabcentral/profile/authors/3931123-oren-berkovicth)
- created by oren berkovitch 
+
+![OpticMat](OpticMat.gif) 
+
+
+created by oren berkovitch 
 
 icons attribue:
 
