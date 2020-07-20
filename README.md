@@ -9,13 +9,14 @@ This software simulates the optical system through which you can:
    Focus lens, front and rear radius of the lens and more.
 4. The software is written in object-oriented programming and also has a user interface:
 
- 
+![OpticMat](opticMat.gif)
+
 ![](https://www.mathworks.com/matlabcentral/mlc-downloads/downloads/submissions/47414/versions/4/screenshot.jpg)
 
 for more matlab project go to:
 [matlab project](https://www.mathworks.com/matlabcentral/profile/authors/3931123-oren-berkovicth)
 
-![OpticMat](opticMat.gif) 
+
 
 
 created by oren berkovitch 
