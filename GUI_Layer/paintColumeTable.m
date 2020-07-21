@@ -1,5 +1,5 @@
 function data_color = paintColumeTable(data,colors)
-
+% created by oren berkovitch orenber@hotmail.com
 %% color = {'blue','red','green'};
 nrow = size(data,1);
 ncol = size(data,2);

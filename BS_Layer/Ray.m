@@ -4,6 +4,7 @@ classdef Ray  <handle
     %  03/08/2014 Ray y=0 bug fix
     %  03/08/2014 Ray destination change from 500 to 2500
     %  06/08/2014 Ray  in case the input is not anumber bug fix
+    % created by oren berkovitch orenber@hotmail.com
     events
         Update
     end

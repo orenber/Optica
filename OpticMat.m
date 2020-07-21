@@ -23,8 +23,9 @@ function varargout = OpticMat(varargin)
 % Edit the above text to modify the response to help OpticMat
 
 % Last Modified by GUIDE v2.5 16-Jul-2020 06:20:26
-
 % Begin initialization code - DO NOT EDIT
+
+% created by oren berkovitch orenber@hotmail.com
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...

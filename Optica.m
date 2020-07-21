@@ -10,6 +10,7 @@ function varargout = Optica(varargin)
 %
 % Lens Data Entry: Click with the mouse on the lens you want to enter data to a red arrow will appear above the selected lens now enter the data, all the data are in meters.
 % Lens matrix: each lens has its own matrix, by selecting the lens, the lens matrix table will appear
+% created by oren berkovitch orenber@hotmail.com
 
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...

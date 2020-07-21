@@ -1,5 +1,5 @@
 function html= str2html(text,color,style,imgicon)
-
+% created by oren berkovitch orenber@hotmail.com
 img='';
  
 if nargin<3

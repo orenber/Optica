@@ -1,6 +1,7 @@
 classdef Lens <Space
     %  Build a lens as you wish
     %  06/08/2014  in case the input is not anumber bug fix
+    % created by oren berkovitch orenber@hotmail.com
     events
         Update
     end

@@ -1,6 +1,6 @@
 %% figure
 function handles = OpticMat_build_GUI(handles)
-
+% created by oren berkovitch orenber@hotmail.com
 
 set(handles.figure_opticMat,...
     'name','Optica',...
