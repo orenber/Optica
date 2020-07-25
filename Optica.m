@@ -500,7 +500,13 @@ set(handles.editYRay,'string',num2str(handles.ray.y))
 mat = cell2mat(handles.ray.xyr);
 xyr = reshape(mat,size(mat,1),size(mat,2));
 
-coulumHeader = repmat({'x','y','angle'},1,size(xyr,2)/size(xyr,1));
+interfaceNumbers =  size(xyr,2)/size(xyr,1);  
+num = repmat(1:interfaceNumbers,size(xyr,1),1);
+coulumNum = arrayfun(@(x){num2str(x)},num(:)');
+% concatinate title and number 
+coulumHeader = strcat(repmat({'x','y','angle'},1,interfaceNumbers),coulumNum);
+
+ 
 xyr_color = paintColumeTable(xyr,{'blue','red','green'});
 set(handles.tbRayXYTeta,'data',xyr_color,'ColumnName',coulumHeader);
 

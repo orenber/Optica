@@ -228,8 +228,12 @@ set(h.table_angle_rays,'data',data_angle)
 % update Ray table
 mat = cell2mat(h.ray.xyr);
 xyr = reshape(mat,size(mat,1),size(mat,2));
+interfaceNumbers =  size(xyr,2)/size(xyr,1);  
+num = repmat(1:interfaceNumbers,size(xyr,1),1);
+coulumNum = arrayfun(@(x){num2str(x)},num(:)');
+% concatinate title and number 
+coulumHeader = strcat(repmat({'x','y','angle'},1,interfaceNumbers),coulumNum);
 
-coulumHeader = repmat({'x','y','angle'},1,size(xyr,2)/size(xyr,1));
 xyr_color = paintColumeTable(xyr,{'blue','red','green'});
 set(h.table_ray_path,'data',xyr_color,'ColumnName',coulumHeader);
 
