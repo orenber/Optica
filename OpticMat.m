@@ -233,7 +233,7 @@ num = repmat(1:interfaceNumbers,size(xyr,1),1);
 coulumNum = arrayfun(@(x){num2str(x)},num(:)');
 % concatinate title and number 
 coulumHeader = strcat(repmat({'x','y','angle'},1,interfaceNumbers),coulumNum);
-
+xyr = arrayfun(@(x)sprintf('%15.*g',3,x),xyr,'UniformOutput',false);
 xyr_color = paintColumeTable(xyr,{'blue','red','green'});
 set(h.table_ray_path,'data',xyr_color,'ColumnName',coulumHeader);
 

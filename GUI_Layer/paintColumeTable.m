@@ -10,7 +10,7 @@ data_color = cell(nrow,ncol);
 for col = 1:ncol
     color_num = numberbase(col,nc);
     for row = 1:nrow
-        data_color{row,col} = str2html(data(row,col),colors{color_num});
+        data_color(row,col) = str2html(data(row,col),colors{color_num});
     end
 end
 end

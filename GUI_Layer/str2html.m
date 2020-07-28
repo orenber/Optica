@@ -28,8 +28,8 @@ end
 
 
 
- html=['<html><style>table{',style,'}</style><table color=',color,...
-     '><TR>',img,'<TD><p>',text,'</p></TD></TR></table></html>'];
+ html=strcat('<html><style>table{',style,'}</style><table color=',color,...
+     '><TR>',img,'<TD><p>',text,'</p></TD></TR></table></html>');
 
  
  
