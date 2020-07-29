@@ -146,7 +146,7 @@ function handles = GUI_Adjustment(hObject, handles)
             'Magenta',...
             'Black'};
 set(handles.popupmenuColorLens,'string',color_collection);
-
+set(handles.checkboxRayOn,'Value',true);
 guidata(hObject, handles);
 
 
@@ -169,30 +169,29 @@ set(handles.tbmatrixlens,'data',lensObj.matrix);
 
 function showLensData(hObject, eventdata, handles)
 system = handles.system;
+    if system.indx ~= 0
+        set(handles.panelens,'Title',strcat('Lens :',num2str(system.indx)))
     
-    set(handles.panelens,'Title',strcat('Lens :',num2str(system.indx)))
+        set(handles.editRadiusLeft,'string',num2str(system.lens(system.indx).radius_left));
+        set(handles.editRadiusRight,'string',num2str(system.lens(system.indx).radius_right));
     
-    set(handles.editRadiusLeft,'string',num2str(system.lens(system.indx).radius_left));
-    set(handles.editRadiusRight,'string',num2str(system.lens(system.indx).radius_right));
+        set(handles.editWidth,'string',num2str(system.lens(system.indx).width));
+        set(handles.editHeight,'string',num2str(system.lens(system.indx).height));
     
-    set(handles.editWidth,'string',num2str(system.lens(system.indx).width));
-    set(handles.editHeight,'string',num2str(system.lens(system.indx).height));
+        set(handles.editIndexOut,'string',num2str(system.lens(system.indx).index_out));
+        set(handles.editIndexIn,'string',num2str(system.lens(system.indx).index_in));
     
-    set(handles.editIndexOut,'string',num2str(system.lens(system.indx).index_out));
-    set(handles.editIndexIn,'string',num2str(system.lens(system.indx).index_in));
+        set(handles.editX,'string',num2str(system.lens(system.indx).x));
+        set(handles.editFocal,'string',num2str(system.lens(system.indx).focal));
     
-    set(handles.editX,'string',num2str(system.lens(system.indx).x));
-    set(handles.editFocal,'string',num2str(system.lens(system.indx).focal));
-    
-    color_popup = get(handles.popupmenuColorLens,'string');
-    color_selected_lens = system.lens(system.indx).color;
-    color_index = find(ismember(color_popup,color_selected_lens));
-    set(handles.popupmenuColorLens,'value',color_index)
+        color_popup = get(handles.popupmenuColorLens,'string');
+        color_selected_lens = system.lens(system.indx).color;
+        color_index = find(ismember(color_popup,color_selected_lens));
+        set(handles.popupmenuColorLens,'value',color_index)
 
- 
-    % update matrix lens table
-    set(handles.tbmatrixlens,'data',system.lens(system.indx).matrix);
-  
+        % update matrix lens table
+        set(handles.tbmatrixlens,'data',system.lens(system.indx).matrix);
+    end
    
 function enbleOpticLensUI(handles,onoff)
 
@@ -376,7 +375,7 @@ function editHeight_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of editHeight as text
 %        str2double(get(hObject,'String')) returns contents of editHeight as a double
 system = handles.system; 
-system.lens(system.indx).height=str2double(get(hObject,'string'));
+system.lens(system.indx).height = str2double(get(hObject,'string'));
 set(handles.editHeight,'string',num2str(system.lens(system.indx).height))
  
 
@@ -506,8 +505,8 @@ coulumNum = arrayfun(@(x){num2str(x)},num(:)');
 % concatinate title and number 
 coulumHeader = strcat(repmat({'x','y','angle'},1,interfaceNumbers),coulumNum);
 
- 
-xyr_color = paintColumeTable(xyr,{'blue','red','green'});
+xyr_str = arrayfun(@(x)sprintf('%15.*g',3,x),xyr,'UniformOutput',false);
+xyr_color = paintColumeTable(xyr_str,{'blue','red','green'});
 set(handles.tbRayXYTeta,'data',xyr_color,'ColumnName',coulumHeader);
 
 
