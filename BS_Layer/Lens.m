@@ -172,6 +172,25 @@ classdef Lens <Space
             end
         end
         
+        function setFocal(len,val)
+            assert(~isnan(val),'value is not number')
+            if  len.focal ~= val
+                len.focal = val;
+                
+                factor1 = len.index_in-len.index_out;
+                factor2 = (len.index_in-len.index_out)*len.width/len.index_in;
+                a = -len.index_in/len.focal;
+                b = factor1*2*len.index_in;
+                c = factor1*factor2;
+                R = roots([a,b,c]);
+                len.radius_left = R(1);
+                len.radius_right = -R(1);
+                
+                len.update()
+                
+            end
+        end
+        
         function set.height(len,val)
             assert(~isnan(val),'value is not number')
             if val<=0
@@ -239,14 +258,17 @@ classdef Lens <Space
     end
     
     methods (Access = protected)
+       
         function focalUpdate(len)
             
+           
             [ni,no] = deal(len.index_in,len.index_out);
-            [Rl,Rr] =deal(len.radius_left,len.radius_right) ;
-             d = len.width;
+            [Rl,Rr] = deal(len.radius_left,len.radius_right) ;
+            d = len.width;
+            % Lensmaker's equation   
             len.focal  = ((ni -no)*(1/Rl - 1/Rr+(ni -no)*d/(ni*Rl*Rr)))^-1;
             
-                 
+            
         end
     end
     

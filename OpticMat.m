@@ -210,6 +210,8 @@ allPropery = fieldnames(h.setup.lens);
 properySelect = allPropery{eventdata.Indices(1)};
 property = h.setup.lens.(properySelect);
 switch property
+    case 'focal'
+          lens.setFocal(str2double(eventdata.NewData))
     case 'color'
           lens.(property) = eventdata.NewData;
     otherwise
