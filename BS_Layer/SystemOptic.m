@@ -414,10 +414,10 @@ classdef SystemOptic <handle
             ysort = sort([ylenRange,yFigureRange]);
             xsort = sort([xlenRange,xFigureRange]);
             
-            ymin = min([ysort(1),-1]);
-            ymax = max([ysort(end),3]);
-            xmin = min([xsort(1),-0.5]);
-            xmax = max([xsort(end),1]);
+            ymin = ysort(1);
+            ymax = ysort(end);
+            xmin = xsort(1);
+            xmax = xsort(end);
             
             factor.y = diff([ymin,ymax])*factor_percent;
             factor.x = diff([xmin,xmax])*factor_percent;
