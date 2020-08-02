@@ -62,14 +62,14 @@ classdef Fig <handle
         function fig=Fig(varargin)
             
             setup_defult = struct('x',0,'y',0,'height',2,'color','green',...
-                'parent',gca);
+                'parent',gca,'name','Real Figure','Magnification',1);
             setup_input = varargin2struct(varargin{:});
             setup = mergestruct(setup_defult,setup_input);
             
             fig.displayObj = Arrow([0 0],[0,0],setup.color,...
                 'EdgeColor',setup.color,...
                 'Parent',setup.parent);
-   
+       
             fig.parent = setup.parent;
             fig.color = setup.color;
             fig.x = setup.x;
@@ -78,8 +78,13 @@ classdef Fig <handle
             fig.listner_draw = addlistener(fig,'draw','PostSet',@(h,e)fig.view(h,e));
             fig.draw = true;
             fig.listner_destroyed = addlistener(fig,'ObjectBeingDestroyed',@(h,e)fig.destroyed(h,e));
-            
-            
+               
+            uimenu('Parent',fig.displayObj.hArrow.UIContextMenu,'Label',strcat('x : ',num2str(setup.x)))
+            uimenu('Parent',fig.displayObj.hArrow.UIContextMenu,'Label',strcat('height  ',num2str(setup.height)))
+            uimenu('Parent',fig.displayObj.hArrow.UIContextMenu,'Label',strcat('Magnification = ',num2str(setup.Magnification)))
+            uimenu('Parent',fig.displayObj.hArrow.UIContextMenu,'Label',setup.name);
+           
+            set(gcf,'UIContextMenu',fig.displayObj.hArrow.UIContextMenu);
             
         end
         
@@ -203,13 +208,13 @@ classdef Fig <handle
             
             %% Plot all the Arrow (Real and Virtual Figure)
             % plot all the real image
-            fig.RealFig = fig.craeteRealAndImgFigure(fig.RealFig,{'red','Magenta'});
+            fig.RealFig = fig.craeteRealAndImgFigure(fig.RealFig,'Real',{'red','Magenta'});
             % plot all the virtual figure
-            fig.ImgFig = fig.craeteRealAndImgFigure(fig.ImgFig,{'blue','cyan'});
+            fig.ImgFig = fig.craeteRealAndImgFigure(fig.ImgFig,'Imagenery',{'blue','cyan'});
             
         end
         
-        function [opticFigure] = craeteRealAndImgFigure(fig,opticFigure,colorType)
+        function [opticFigure] = craeteRealAndImgFigure(fig,opticFigure,type,colorType)
             % plot all the virtual figure
             Color=colorType{1};
             for n = 1:length(opticFigure)
@@ -223,7 +228,8 @@ classdef Fig <handle
                     
                     opticFigure(n).hObject = Fig('x', opticFigure(n).x,...
                         'y',opticFigure(n).y,...
-                        'height', opticFigure(n).height,'color',Color);
+                        'height', opticFigure(n).height,'color',Color,...
+                        'name',type,'Magnification',opticFigure(n).M);
                     %'ButtonDownFcn',{@VirtualImgData,Nimg},'FaceColor',Color,'LineWidth',abs(0.1*fig.ImgFig(Nimg).M));
                     %set(fig.ImgFig(Nimg).arrIm,'HandleVisibility','off')
                     
